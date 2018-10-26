@@ -1,9 +1,7 @@
-source("execution_context.R")
-
 install.packages("sparklyr")
 library(sparklyr)
 
-if(execution_context == "local"){
+if(nchar(Sys.getenv("WORK_LOCAL")) < 1){
   if (nchar(Sys.getenv("SPARK_HOME")) < 1) {
     Sys.setenv(SPARK_HOME = "~/spark/spark-2.3.0-bin-hadoop2.7")
     spark_install(version = "2.3.0")
@@ -12,17 +10,19 @@ if(execution_context == "local"){
   
 } else{
   #databricks remote
-  wsc <- sc
+  library(SparkR)
+  sparkR.session()
+  wsc <- spark_connect(method = "databricks")
 }
 
 install.packages(c("nycflights13", "Lahman"))
 
 library(dplyr)
 
-iris_tbl <- copy_to(sc, iris)
-flights_tbl <- copy_to(sc, nycflights13::flights, "flights")
-batting_tbl <- copy_to(sc, Lahman::Batting, "batting")
-src_tbls(sc)
+iris_tbl <- copy_to(wsc, iris)
+flights_tbl <- copy_to(wsc, nycflights13::flights, "flights")
+batting_tbl <- copy_to(wsc, Lahman::Batting, "batting")
+src_tbls(wsc)
 flights_tbl %>% filter(dep_delay == 2)
 delay <- flights_tbl %>%
   group_by(tailnum) %>%
@@ -46,7 +46,7 @@ batting_tbl %>%
   filter(min_rank(desc(H)) <= 2 & H > 0)
 
 # copy mtcars into spark
-mtcars_tbl <- copy_to(sc, mtcars)
+mtcars_tbl <- copy_to(wsc, mtcars)
 
 # transform our data set, and then partition into 'training', 'test'
 partitions <- mtcars_tbl %>%

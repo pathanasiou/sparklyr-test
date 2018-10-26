@@ -1,1 +1,1 @@
-execution_context <- "local"
+Sys.setenv(WORK_LOCAL = "YEAP")
